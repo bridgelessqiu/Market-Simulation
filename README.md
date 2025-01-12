@@ -15,7 +15,7 @@
 
 
 ## `marketlib`
-**Overview:** Contains subpackages for markets, ordres and clearnings.
+**Overview:** Contains subpackages for markets, orders and clearnings.
 
 #### 1. ``markets``
 
