@@ -15,9 +15,9 @@ class PoolMarket(Market):
     then the problem of maximizing volume is **NOT** the same as minimizing the gap.
     """
 
-    def clearing(self):
+    def _pricing(self):
         """
-        How the clearing is performed:
+        How the clearing price is found:
         1. Sort the union of ask and bid prices in non-descending order.
 
         2. Iterative over each price, compute the corresponding volume.
@@ -43,6 +43,7 @@ class PoolMarket(Market):
         # --- Compute the cumulative quantity of bids and asks ---
         cumu_bids, cumu_asks = {}, {}
 
+        # --- Compute the cumulative bid/ask units
         for i in range(0, len(bids)):
             if i == 0:
                 cumu_bids[bids[i][0]] = bids[i][1]
@@ -66,6 +67,32 @@ class PoolMarket(Market):
                 return prices[i-1], curr_vol, curr_gap
 
             curr_vol = new_vol
-            curr_gap = new_gap
+            curr_gap = new_gap 
 
         return prices[-1], curr_vol, curr_gap
+
+    def clearing(self):
+        """
+        Peformes market clearing, which involves two stesp:
+            1. Compute the clearing price and volume
+            2. Determine the allocations
+        """
+        # --- Compute the clearing price ---
+        clearing_price, volume, gap = self._pricing()
+
+        # --- Compute the allocation ---
+        # Note: This is not a class method
+        self.alloc_method(self, clearing_price, volume)
+        
+        # --- Output (Optional) --- 
+        print("\n---- Clearning Info ----")
+
+        print(f"Clearing price: {clearing_price}")
+        print(f"Total volumn: {volume}")
+        print(f"Gap: {gap}")
+
+        print("\n---- Buyer Allocation ----")
+        print(self.alloc_buyer)
+
+        print("\n---- Seller Allocation ----")
+        print(self.alloc_seller)
