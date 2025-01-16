@@ -39,7 +39,6 @@ def proportional_allocation(M, clearing_price, volume):
     buyer_allocation = feasible_bids.groupby("User")["Unit"].sum().to_dict()
     seller_allocation = feasible_asks.groupby("User")["Unit"].sum().to_dict()
 
-
     # Note: this total sum might not equal to the clearing volume,
     # as true clearing might not exist
     total_buy = sum(buyer_allocation.values())
@@ -57,7 +56,49 @@ def proportional_allocation(M, clearing_price, volume):
 
         M.alloc_seller = pd.concat([M.alloc_seller, new_row], ignore_index=True)
 
+# --------------------------
+# -   Uniform Allocation   -
+# --------------------------
+def uniform_allocation(M, clearing_price, volume):
+    """
+    An allocation method (after clearing price is determined) with an
+    even distribution of goods to among the participants.
+
+    Source: Bogomolnaia, A., & Moulin, H. (2001). A new solution to the random assignment problem. Journal of Economic theory, 100(2), 295-328.
+
+    Args:
+        M (Market): a marekt instance
+        clearning_price (float): the market clearing price
+        volume (int): the clearing volume
+
+    Returns:
+        None
+        The two attributes: alloc_seller and alloc_buyer of M are updated to 
+        record the resulting allocations.
+    """
+
+    # Extract the number of units for each buyer/seller
+    feasible_bids = M.book.orders[(M.book.orders["Type"] == "bid") & (M.book.orders["Price"] >= clearing_price)]
+    feasible_asks = M.book.orders[(M.book.orders["Type"] == "ask") & (M.book.orders["Price"] <= clearing_price)]
+
+    # --- Compute the actual allocation ---
+    buyer_num = feasible_bids["User"].nunique()
+    seller_num = feasible_asks["User"].nunique()
+
+    for buyer in feasible_bids["User"]:
+        active_vol = volume / buyer_num
+        new_row = pd.DataFrame({"User" : [buyer], "Units Bought" : [active_vol], "Price" : [clearing_price]})
+
+        M.alloc_buyer = pd.concat([M.alloc_buyer, new_row], ignore_index=True)
+
+    for seller in feasible_asks["User"]:
+        active_vol = volume / seller_num
+        new_row = pd.DataFrame({"User" : [seller], "Units Sold" : [active_vol], "Price" : [clearing_price]})
+
+        M.alloc_seller = pd.concat([M.alloc_seller, new_row], ignore_index=True)
+
 # Factory
 ALLOCATION_METHODS = {
-    "proportional" : proportional_allocation
+    "proportional" : proportional_allocation,
+    "uniform" : uniform_allocation
 }
