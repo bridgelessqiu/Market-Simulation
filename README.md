@@ -1,3 +1,5 @@
+**Project goal:** Agent-based simulation for market of goods.
+
 # Design
 
 ## `data`

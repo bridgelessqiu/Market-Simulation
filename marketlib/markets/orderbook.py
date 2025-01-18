@@ -99,11 +99,11 @@ class OrderBook():
             input_path (str): path to the .csv file.
             Unit, Price, User
         """
-        new_bid = pd.read_csv(input_path, header=None, names=["Unit", "Price", "User"], sep=',')
-        new_bid["Type"] = "ask"
-        new_bid = new_bid[["Unit", "Price", "Type", "User"]]
+        new_ask = pd.read_csv(input_path, header=None, names=["Unit", "Price", "User"], sep=',')
+        new_ask["Type"] = "ask"
+        new_ask = new_ask[["Unit", "Price", "Type", "User"]]
 
-        self.orders = pd.concat([self.orders, new_bid], ignore_index=True)
+        self.orders = pd.concat([self.orders, new_ask], ignore_index=True)
 
     def display(self, scale=0):
         """

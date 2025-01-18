@@ -13,10 +13,11 @@ class Market():
     plot (function): plot the supply/demand curve
     """
 
-    def __init__(self, alloc_type="proportional", divisble=True):
+    def __init__(self, alloc_type="uniform", divisble=True):
         self.book = OrderBook()
         self.divisible = divisble
         self.alloc_type = alloc_type
+
         self.alloc_buyer = pd.DataFrame(columns=["User", "Units Bought", "Price"])
         self.alloc_seller = pd.DataFrame(columns=["User", "Units Sold", "Price"])
 

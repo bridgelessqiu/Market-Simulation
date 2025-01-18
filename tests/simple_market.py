@@ -8,7 +8,7 @@ from marketlib import markets as mk
 bid_file_path = "../data/example_bids.csv"
 ask_file_path = "../data/example_asks.csv"
 
-M = mk.PoolMarket(alloc_type="uniform")
+M = mk.PoolMarket(alloc_type="price")
 
 M.bid_csv(bid_file_path)
 M.ask_csv(ask_file_path)
