@@ -8,7 +8,7 @@ from marketlib import markets as mk
 bid_file_path = "../data/example_bids.csv"
 ask_file_path = "../data/example_asks.csv"
 
-M = mk.PoolMarket(alloc_type="price")
+M = mk.PoolMarket(alloc_type="welfare")
 
 M.bid_csv(bid_file_path)
 M.ask_csv(ask_file_path)
@@ -17,11 +17,3 @@ M.ask_csv(ask_file_path)
 print(M.show())
 
 M.clearing()
-
-# Compute the clearing price, volumn, and gap
-# price, vol, gap = M.clearing()
-
-# print(f"Price: {price}")
-# print(f"Volumn: {vol}")
-# print(f"Transction amount: {price * vol}")
-# print(f"gap: {gap}")

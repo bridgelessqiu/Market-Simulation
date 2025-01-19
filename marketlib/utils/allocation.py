@@ -208,19 +208,89 @@ def price_priority_allocation(M, clearing_price, volume):
             new_row = pd.DataFrame({"User" : [seller], "Units Sold" : [vol], "Price" : [clearing_price]})
             M.alloc_seller = pd.concat([M.alloc_seller, new_row], ignore_index=True)
     
-    # ---------------------------
-    # -   Marginal Allocation   -
-    # ---------------------------
-    def marginal_allocation(M, clearing_price, volume):
-        """
-        Zirou: I am trying to figure out how this works.
-        Allocate items to buyers and sellers on the margin of the supply and demand curves.
-        """
-        pass
+# ------------------------------
+# -   Max-Welfare Allocation   -
+# ------------------------------
+def welfare_allocation(M, clearing_price, volume):
+    """
+    Do the allocation that maximizes the welfare. 
+    The utility of each participant i is computed as follows:
+    "valuation of the units allocated - the actual payment"
+
+    An example:
+        A buyer i submits two bids:
+        1. $5 per unit for the first 10 units
+        2. $2 per unit for the next 5 units
+
+        Under a clearing price of $1, and 12 units allocated to i, 
+        its utility would be:
+            (5 * 10 + 2 * 2) - 12 * 1
+        or in a per-unit experssion:
+            (5 - 1) * 10 + (2 - 1) * 2
+    
+    Args:
+        M (Market): a marekt instance
+        clearning_price (float): the market clearing price
+        volume (int): the clearing volume
+
+    Returns:
+        None
+        The two attributes: alloc_seller and alloc_buyer of M are updated to 
+        record the resulting allocations.
+    """
+
+    # Extract the orderbook
+    feasible_bids, feasible_asks = feasible_bidask(M, clearing_price)
+
+    # --- Allocation ---
+
+    # Step I: sort the bids (non-ascending) and asks (non-descending) by price
+    feasible_bids = feasible_bids.sort_values(by="Price", ascending=False)
+    feasible_asks = feasible_asks.sort_values(by="Price", ascending=True)
+
+    # Step II: allocation by prices
+    buy_welfare, sell_welfare = 0, 0 # Nice to keep track
+    buy_vol, sell_vol = volume, volume
+
+    for row in feasible_bids.itertuples(index=False):
+        # When all volumes are allocated
+        if buy_vol == 0:
+            break
+        buyer = row.User
+        units = row.Unit
+        price = row.Price
+
+        actual_units = min(buy_vol, units)
+        buy_vol = max(0, buy_vol - actual_units)
+        buy_welfare += (price - clearing_price) * actual_units
+
+        new_row = pd.DataFrame({"User" : [buyer], "Units Bought" : [actual_units], "Price" : [clearing_price]})
+        M.alloc_buyer = pd.concat([M.alloc_buyer, new_row], ignore_index=True)
+
+    M.alloc_buyer = M.alloc_buyer.groupby("User", as_index=False).agg({"Units Bought": "sum", "Price": "first"})
+
+    for row in feasible_asks.itertuples(index=False):
+        # When all volumes are allocated
+        if sell_vol == 0:
+            break
+        seller = row.User
+        units = row.Unit
+        price = row.Price
+
+        actual_units = min(sell_vol, units)
+        sell_vol = max(0, sell_vol - actual_units)
+        sell_welfare += (price - clearing_price) * actual_units
+
+        new_row = pd.DataFrame({"User" : [seller], "Units Sold" : [actual_units], "Price" : [clearing_price]})
+        M.alloc_seller = pd.concat([M.alloc_seller, new_row], ignore_index=True)
+
+    M.alloc_seller = M.alloc_seller.groupby("User", as_index=False).agg({"Units Sold": "sum", "Price": "first"})
+
 
 # Factory
 ALLOCATION_METHODS = {
     "proportional" : proportional_allocation,
     "uniform" : uniform_allocation,
-    "price" : price_priority_allocation
+    "price" : price_priority_allocation,
+    "welfare" : welfare_allocation
 }
