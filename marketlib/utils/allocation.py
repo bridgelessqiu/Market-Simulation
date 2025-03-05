@@ -1,30 +1,25 @@
-"""
-The utilities are for developers only.
-  1. They are not accessible to users. 
-  2. Should not be imported automatically.
-  3. Should not appear in the doc.
+""" Allocation methods for market clearing.
+
+    Allocation happens when a clearing price is determined.
 """
 
-from typing import List
-from typing import Dict
 import pandas as pd
 from itertools import zip_longest
 
 # ------------------------------
 # -   Feasible Bids and Asks   -
 # ------------------------------
-def feasible_bidask(M, clearing_price):
-    """
-    Given a clearing price, return the orderbook for users
-    who are willing to buy/sell.
+def feasible_bidask(M, clearing_price : float):
+    """ Given a clearing price, find users who are willing to buy or sell.
 
     Args:
-        M (Market): a marekt instance
-
-        clearning_price (float): the market clearing price
+        M (Market): 
+            A market instance.
+        clearning_price (float): 
+            The market clearing price.
     
     Return:
-        (Orderbook for buyers, Orderbook for sellers)
+        A tuple of the form: (Orderbook for feasible buyers, Orderbook for feasible sellers).
     """
 
     feasible_bids = M.book.orders[(M.book.orders["Type"] == "bid") & (M.book.orders["Price"] >= clearing_price)]
@@ -32,47 +27,45 @@ def feasible_bidask(M, clearing_price):
 
     return feasible_bids, feasible_asks
 
-
 # -------------------------------
 # -   Proportional Allocation   -
 # -------------------------------
 def proportional_allocation(M, clearing_price, volume):
-    """
-    An allocation method (after clearing price is determined) based on 
-    the proportion of bid/ask units of each participant.
-
+    """ Allocate based on the proportion of bid/ask units of each participant.
+    
+    Consider the buyer side. The seller's allocation happens analogously. For a
+    Buyer i, let U_i denote the number of units that i is willing to trade under clearing price p. Let U denote the total number of feasible units over all the buyers under p. Note that, in the case of a shortage, U is greater than the clearing volume. 
+    The number of units that i receives equals to clearing_volume * (U_i / U).
+    
     Source: Moulin, H. (2004). Fair division and collective welfare. MIT press.
 
     Args:
-        M (Market): a marekt instance
+        M (Market): 
+            A market instance.
+        clearning_price (float): 
+            The market clearing price.
+        volume (int): 
+            The clearing volume.
 
-        clearning_price (float): the market clearing price
-
-        volume (int): the clearing volume
-
-    Returns:
-        None
-        The two attributes: alloc_seller and alloc_buyer of M are updated to 
-        record the resulting allocations.
+    Returns: 
+        None. The two attributes: alloc_seller and alloc_buyer of M are updated to record the resulting allocations.
     """
 
-    # Extract the number of units for each buyer/seller if they 
-    # have incentives to buy/sell under the clearing price
+    # Extract the number of feasible units for each buyer/seller if they 
+    # have incentives to buy/sell under the clearing price.
     feasible_bids, feasible_asks = feasible_bidask(M, clearing_price)
 
-    # --- Compute the allocation ---
-
-    # Step I: compute the total units for each user
+    # Step I: Compute the total units for each user that is willing to trade.
     buyer_allocation = feasible_bids.groupby("User")["Unit"].sum().to_dict()
     seller_allocation = feasible_asks.groupby("User")["Unit"].sum().to_dict()
 
-    # Step II: compute the total buying and selling units
-    # Note: this total sum might not equal to the clearing volume,
-    # as true clearing might not exist
+    # Step II: compute the total feasible bid and ask units.
+    # This total sum might not equal to the clearing volume, as true
+    # clearing might not exist.
     total_buy = sum(buyer_allocation.values())
     total_sell = sum(seller_allocation.values())
 
-    # Step III: allocation based on the proportion
+    # Step III: allocation.
     for buyer in buyer_allocation.keys():
         active_vol = volume * (buyer_allocation[buyer] / total_buy) 
         new_row = pd.DataFrame({"User" : [buyer], "Units Bought" : [active_vol], "Price" : [clearing_price]})
@@ -89,33 +82,32 @@ def proportional_allocation(M, clearing_price, volume):
 # -   Uniform Allocation   -
 # --------------------------
 def uniform_allocation(M, clearing_price, volume):
-    """
-    An allocation method (after clearing price is determined) with an
-    even distribution of goods to among the participants.
+    """ Even distribution of goods to among the participants.
+    
+    For the set of feasible buyers / sellers, each participants receives the same number of units from the total clearing volume.
 
     Source: Bogomolnaia, A., & Moulin, H. (2001). A new solution to the random assignment problem. Journal of Economic theory, 100(2), 295-328.
 
     Args:
-        M (Market): a marekt instance
-        clearning_price (float): the market clearing price
-        volume (int): the clearing volume
+        M (Market): 
+            A market instance.
+        clearning_price (float): 
+            The market clearing price.
+        volume (int): 
+            The clearing volume.
 
     Returns:
-        None
-        The two attributes: alloc_seller and alloc_buyer of M are updated to 
-        record the resulting allocations.
+        None. The two attributes: alloc_seller and alloc_buyer of M are updated to record the resulting allocations.
     """
 
-    # Extract the number of units for each buyer/seller
+    # Extract the number of units for each buyer/seller.
     feasible_bids, feasible_asks = feasible_bidask(M, clearing_price)
 
-    # --- Compute the allocation ---
-
-    # Step I: compute the number of buyers and sellers
+    # Step I: Compute the number of buyers/sellers that are willing to trade.
     buyer_num = feasible_bids["User"].nunique()
     seller_num = feasible_asks["User"].nunique()
 
-    # Step II: evenly divide the overall units among the buyers and sellers
+    # Step II: Evenly divide the clearing units.
     for buyer in feasible_bids["User"]:
         active_vol = volume / buyer_num
         new_row = pd.DataFrame({"User" : [buyer], "Units Bought" : [active_vol], "Price" : [clearing_price]})
@@ -130,32 +122,32 @@ def uniform_allocation(M, clearing_price, volume):
 # -   Price-Based Allocation   -
 # ------------------------------
 def price_priority_allocation(M, clearing_price, volume):
-    """
-    An allocation method (after clearing price is determined) using
-    a ranking of users by the averged per-unit-price. 
+    """ Rank users by the averaged per-unit price, then allocate.
+
+    Let i be a buyer that is willing to trade under the clearing price. Let alpha_i denote the per-unit price of i, computed over all feasible bids of i. The market ranks all buyers (who are willing to trade) based on its per-unit price alpha_i in non-ascending order. Then, the market tries to satisfies the units desired for each buyer following this priority list, until all clearing units are distributed. The allocation for sellers happens analogously, excepts that they are ranked in non-descending order.
 
     Source: Milgrom, P. (1989). Auctions and bidding: A primer. 
     Journal of economic perspectives, 3(3), 3-22.
 
     Args:
-        M (Market): a marekt instance
-        clearning_price (float): the market clearing price
-        volume (int): the clearing volume
+        M (Market): 
+            A market instance.
+        clearing_price (float): 
+            The market clearing price.
+        volume (int): 
+            The clearing volume.
 
     Returns:
-        None
-        The two attributes: alloc_seller and alloc_buyer of M are updated to 
-        record the resulting allocations.
+        None. The two attributes: alloc_seller and alloc_buyer of M are updated to record the resulting allocations.
     """
 
-    # Extract the orderbook
     feasible_bids, feasible_asks = feasible_bidask(M, clearing_price)
 
-    # --- Compute the allocation --- 
-
-    # Step I: compute the averaged per-unit-price
+    # Step I: Compute the averaged per-unit price.
+    # buyer_price_dict = {buyer : per-unit price}
     buyer_price_dict, seller_price_dict = {}, {}
 
+    # total_units_buyer = {buyer : units}
     total_units_buyer = feasible_bids.groupby("User")["Unit"].sum().to_dict()
     total_units_seller = feasible_asks.groupby("User")["Unit"].sum().to_dict()
 
@@ -183,25 +175,28 @@ def price_priority_allocation(M, clearing_price, volume):
     for seller in seller_price_dict.keys(): 
         seller_price_dict[seller] /= total_units_seller[seller]
 
-    # Step II: ranking buyers and sellers by their per-unit-price
-    # Note: Python 3.7+ supports ordered dict. Not using it here. 
+    # Step II: Ranking buyers and sellers by their per-unit-price.
+    # Python 3.7+ supports ordered dict. Not using it here. 
     ordered_buyer = sorted(buyer_price_dict.keys(), 
                            key=lambda x: buyer_price_dict[x], reverse=True)
-    ordered_seller = sorted(seller_price_dict.keys(), 
-                            key=lambda x: seller_price_dict[x], reverse=True)
+    
+    # Sellers are ranked in non-descending order.
 
-    # Step III: allocate the volumns untill zero based on the ordering
+    ordered_seller = sorted(seller_price_dict.keys(), 
+                            key=lambda x: seller_price_dict[x])
+
+    # Step III: Allocate the volumes based on the ordering.
     buy_volume, sell_volume = volume, volume
 
     for buyer, seller in zip_longest(ordered_buyer, ordered_seller, fillvalue=None):
-        if buyer != None and buy_volume != 0:
+        if buyer is not None and buy_volume != 0:
             vol = min(total_units_buyer[buyer], buy_volume)
             buy_volume = max(0, buy_volume - vol)
 
             new_row = pd.DataFrame({"User" : [buyer], "Units Bought" : [vol], "Price" : [clearing_price]})
             M.alloc_buyer = pd.concat([M.alloc_buyer, new_row], ignore_index=True)
 
-        if seller != None and sell_volume != 0:
+        if seller is not None and sell_volume != 0:
             vol = min(total_units_seller[seller], sell_volume)
             sell_volume = max(0, sell_volume - vol)
 
@@ -212,10 +207,10 @@ def price_priority_allocation(M, clearing_price, volume):
 # -   Max-Welfare Allocation   -
 # ------------------------------
 def welfare_allocation(M, clearing_price, volume):
-    """
-    Do the allocation that maximizes the welfare. 
+    """ Allocation that maximizes the welfare. 
+
     The utility of each participant i is computed as follows:
-    "valuation of the units allocated - the actual payment"
+    "valuation of the units allocated - the actual payment".
 
     An example:
         A buyer i submits two bids:
@@ -225,36 +220,34 @@ def welfare_allocation(M, clearing_price, volume):
         Under a clearing price of $1, and 12 units allocated to i, 
         its utility would be:
             (5 * 10 + 2 * 2) - 12 * 1
-        or in a per-unit experssion:
+        or in a per-unit expression:
             (5 - 1) * 10 + (2 - 1) * 2
     
     Args:
-        M (Market): a marekt instance
-        clearning_price (float): the market clearing price
-        volume (int): the clearing volume
+        M (Market): 
+            A market instance.
+        clearning_price (float): 
+            The market clearing price.
+        volume (int): 
+            The clearing volume.
 
     Returns:
-        None
-        The two attributes: alloc_seller and alloc_buyer of M are updated to 
-        record the resulting allocations.
+        None. The two attributes: alloc_seller and alloc_buyer of M are updated to record the resulting allocations.
     """
 
-    # Extract the orderbook
     feasible_bids, feasible_asks = feasible_bidask(M, clearing_price)
 
-    # --- Allocation ---
-
-    # Step I: sort the bids (non-ascending) and asks (non-descending) by price
+    # Step I: Sort the bids (non-ascending) and asks (non-descending) by price.
+    # Note that we sort bids and asks, not participants.
     feasible_bids = feasible_bids.sort_values(by="Price", ascending=False)
     feasible_asks = feasible_asks.sort_values(by="Price", ascending=True)
 
     # Step II: allocation by prices
-    buy_welfare, sell_welfare = 0, 0 # Nice to keep track
+    buy_welfare, sell_welfare = 0, 0  # Nice to keep track
     buy_vol, sell_vol = volume, volume
 
     for row in feasible_bids.itertuples(index=False):
-        # When all volumes are allocated
-        if buy_vol == 0:
+        if buy_vol == 0:  # When all volumes are allocated
             break
         buyer = row.User
         units = row.Unit
@@ -270,7 +263,6 @@ def welfare_allocation(M, clearing_price, volume):
     M.alloc_buyer = M.alloc_buyer.groupby("User", as_index=False).agg({"Units Bought": "sum", "Price": "first"})
 
     for row in feasible_asks.itertuples(index=False):
-        # When all volumes are allocated
         if sell_vol == 0:
             break
         seller = row.User
@@ -285,7 +277,6 @@ def welfare_allocation(M, clearing_price, volume):
         M.alloc_seller = pd.concat([M.alloc_seller, new_row], ignore_index=True)
 
     M.alloc_seller = M.alloc_seller.groupby("User", as_index=False).agg({"Units Sold": "sum", "Price": "first"})
-
 
 # Factory
 ALLOCATION_METHODS = {
