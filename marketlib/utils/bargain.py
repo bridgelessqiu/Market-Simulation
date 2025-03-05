@@ -1,4 +1,5 @@
 from collections import defaultdict
+import pandas as pd
 
 def middle_bargaining(M, matching):
     """
@@ -51,26 +52,40 @@ def middle_bargaining(M, matching):
     # Meet in the middle from the supply and demand curve
     for buyer, seller in matching.items():
         total_units = 0
-        residue_units = 0
         avg_price = 0
         i, j = 0, 0
 
-        while i < len(buyer_price_dict[buyer]) and j < len(seller_price_dict[seller]):
+        while (i < len(buyer_price_dict[buyer]) 
+               and j < len(seller_price_dict[seller])):
             # When the buying price is less than the selling price, no trade
             # could happen.
             if buyer_price_dict[buyer][i][0] < seller_price_dict[seller][j][0]:
                 break
-            
-            if residue_units == 0:
-                residue_units = max(buyer_price_dict[buyer][i][1],
-                                    (seller_price_dict[seller][j][1])) - min(buyer_price_dict[buyer][i][1],
-                                    (seller_price_dict[seller][j][1]))
 
-                avg_price += (buyer_price_dict[buyer][i][0] + seller_price_dict[seller][j][0]) / 2 * min(buyer_price_dict[buyer][i][1],
-                                    (seller_price_dict[seller][j][1]))
+            min_units = min(buyer_price_dict[buyer][i][1],
+                            (seller_price_dict[seller][j][1]))
 
-                total_units += min(buyer_price_dict[buyer][i][1],
-                                    (seller_price_dict[seller][j][1]))
+            total_units += min_units
+            avg_price += (buyer_price_dict[buyer][i][0] 
+                          + seller_price_dict[seller][j][0]) / 2 * min_units 
+
+            buyer_price_dict[buyer][i][1] -= min_units
+            seller_price_dict[seller][j][1] -= min_units
+
+            if buyer_price_dict[buyer][i][1] == 0:
+                i += 1
+
+            if seller_price_dict[seller][j][1] == 0:
+                j += 1
+        
+        # Update avg_price
+        avg_price /= total_units
+
+        new_row = pd.DataFrame({"User" : [buyer], "Units Bought" : [total_units], "Price" : [avg_price]})
+        M.alloc_buyer = pd.concat([M.alloc_buyer, new_row], ignore_index=True)
+
+        new_row = pd.DataFrame({"User" : [seller], "Units Bought" : [total_units], "Price" : [avg_price]})
+        M.alloc_seller = pd.concat([M.alloc_seller, new_row], ignore_index=True)
 
 
 def nash_bargaining(M, matching):
