@@ -57,3 +57,6 @@ if __name__ == "__main__":
     M.ask_csv("./data/example_asks.csv")
 
     M.clearing()
+
+    print(M.alloc_buyer)
+    print(M.alloc_seller)

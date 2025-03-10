@@ -32,22 +32,23 @@ def middle_bargaining(M, matching):
         price = row.Price
         units = row.Unit
 
-        buyer_price_dict[user].append((price, units))
+        buyer_price_dict[user].append([price, units])
 
     for row in asks.itertuples(index=False):
         user = row.User
         price = row.Price
         units = row.Unit
 
-        seller_price_dict[user].append((price, units))
+        seller_price_dict[user].append([price, units])
 
     # Sort by price. For buyers, in descending order, sellers, in ascending
     # orders.
-    for user in buyer_price_dict.keys():
-        buyer_price_dict[user] = sorted(buyer_price_dict[user], reverse=True)
+    for user, prices in buyer_price_dict.items():
+        prices.sort(reverse=True)
 
-    for user in seller_price_dict.keys():
-        seller_price_dict[user] = sorted(seller_price_dict[user])
+    for user, prices in seller_price_dict.items():
+        prices.sort()
+
 
     # Meet in the middle from the supply and demand curve
     for buyer, seller in matching.items():
@@ -84,7 +85,7 @@ def middle_bargaining(M, matching):
         new_row = pd.DataFrame({"User" : [buyer], "Units Bought" : [total_units], "Price" : [avg_price]})
         M.alloc_buyer = pd.concat([M.alloc_buyer, new_row], ignore_index=True)
 
-        new_row = pd.DataFrame({"User" : [seller], "Units Bought" : [total_units], "Price" : [avg_price]})
+        new_row = pd.DataFrame({"User" : [seller], "Units Sold" : [total_units], "Price" : [avg_price]})
         M.alloc_seller = pd.concat([M.alloc_seller, new_row], ignore_index=True)
 
 
