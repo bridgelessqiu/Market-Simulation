@@ -15,7 +15,7 @@ class BilateralMarket(mar.Market):
     """
 
     def __init__(self, matching_type="random", bargain_type="middle"):
-        """_summary_
+        """A bilateral market.
 
         Args:
             matching_type (str, optional): 

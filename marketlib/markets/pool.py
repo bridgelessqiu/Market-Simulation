@@ -8,7 +8,8 @@ from marketlib.utils import bidask as ba
 class PoolMarket(market.Market):
     """ A pooled based market. 
 
-    Note: if the total supply quantity does not equal to the total demand quantity, then the problem of maximizing volume is NOT the same as minimizing the gap.
+    Note: if the total supply quantity does not equal to the total demand quantity, 
+    then the problem of maximizing volume is NOT the same as minimizing the gap.
     """
 
     def _compute_clearing_price(self):
@@ -17,7 +18,9 @@ class PoolMarket(market.Market):
         2. Iterate over each price, compute the corresponding volume.
         3. Return the price with the highest volume.
 
-        Note: the volume should be non-decreasing as price increases to the volume-maximizing price. Therefore,  once we see the volume start to decrease, the previous price is then the target price.
+        Note: the volume should be non-decreasing as price increases to 
+        the volume-maximizing price. Therefore,  once we see the volume start 
+        to decrease, the previous price is then the target price.
 
         Returns:
             A tuple consists of three elements: a volume-maximizing price
@@ -38,7 +41,8 @@ class PoolMarket(market.Market):
             print("There are no active asks.")
             return 0, 0, 0
 
-        # Since prices are already sorted in bids and asks, the operations below can be done in linear time where no additional sorting is needed.
+        # Since prices are already sorted in bids and asks, the operations below 
+        # can be done in linear time where no additional sorting is needed.
         prices = [x[0] for x in bids] + [y[0] for y in asks]
         prices = sorted(set(prices))
 
@@ -78,7 +82,8 @@ class PoolMarket(market.Market):
             1. Clearing price:
                 Find the price that allows largest feasible volume of trades.
             2. Resource allocation:
-                Allocation the feasible goods among the buyers, distribute the money among the sellers.
+                Allocation the feasible goods among the buyers, distribute 
+                the money among the sellers.
         """
 
         clearing_price, volume, gap = self._compute_clearing_price()
@@ -88,7 +93,7 @@ class PoolMarket(market.Market):
         if clearing_price != 0:
             self.alloc_method(self, clearing_price, volume)  
 
-        print("\n---- Clearning Info ----")
+        print("\n---- Clearing Info ----")
 
         print(f"Clearing price: {clearing_price}")
         print(f"Total volume: {volume}")
@@ -110,12 +115,19 @@ if __name__ == "__main__": # python3 -m marketlib.markets.pool
         P.bid_csv("./data/example_bids.csv")
         P.ask_csv("./data/example_asks.csv")
 
+        print(f"Allocation method: {alloc_type}")
         P.clearing()
+
+
+    """
+    Todo:
+    1. If the number of units is not satisfied, then no units at all.
+    """
 
     """ 
     1. Proportional:
 
-    ---- Clearning Info ----
+    ---- Clearing Info ----
     Clearing price: 2.0
     Total volume: 19
     Gap: 6
@@ -134,7 +146,7 @@ if __name__ == "__main__": # python3 -m marketlib.markets.pool
 
     2. Uniform:
 
-    ---- Clearning Info ----
+    ---- Clearing Info ----
     Clearing price: 2.0
     Total volume: 19
     Gap: 6
@@ -154,7 +166,7 @@ if __name__ == "__main__": # python3 -m marketlib.markets.pool
 
     3. Price: 
 
-    ---- Clearning Info ----
+    ---- Clearing Info ----
     Clearing price: 2.0
     Total volume: 19
     Gap: 6
@@ -172,7 +184,7 @@ if __name__ == "__main__": # python3 -m marketlib.markets.pool
 
     4. Welfare: 
 
-    ---- Clearning Info ----
+    ---- Clearing Info ----
     Clearing price: 2.0
     Total volume: 19
     Gap: 6

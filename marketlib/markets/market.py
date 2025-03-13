@@ -126,7 +126,7 @@ class Market():
         
         Different clearing mechanisms are implemented. Such as pooled, bilateral and auctions.
         """
-        pass
+        raise NotImplementedError("The clearing method should be implemented by each market.")
 
     def plot(self):
         """ Plot the supply and demand curve
