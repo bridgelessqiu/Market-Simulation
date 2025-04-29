@@ -39,7 +39,7 @@ class BilateralMarket(mar.Market):
         self.bargain_method = bar.BARGAIN_METHODS[bargain_type]
 
     def clearing(self):
-        """ Market clearning.
+        """ Market clearing.
 
         The clearing is a two-step process:
             1. Matching 
@@ -48,7 +48,6 @@ class BilateralMarket(mar.Market):
 
         matching = self.matching_method(self)
         self.bargain_method(self, matching)
-
 
 if __name__ == "__main__":
     M = BilateralMarket(matching_type="greedy")

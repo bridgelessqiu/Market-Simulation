@@ -57,10 +57,9 @@ class _OrderBook():
                 Path to the .csv file. Columns: Unit, Price, User
         """
 
-        new_bid = pd.read_csv(input_path, header=None, names=["Unit", "Price", "User"], sep=',')
+        new_bid = pd.read_csv(input_path, sep=',')
         new_bid["Type"] = "bid"
         new_bid = new_bid[["Unit", "Price", "Type", "User"]]
-
         self.orders = pd.concat([self.orders, new_bid], ignore_index=True)
 
     def add_ask(
@@ -94,10 +93,9 @@ class _OrderBook():
                 Path to the .csv file. Columns: Unit, Price, User
         """
 
-        new_ask = pd.read_csv(input_path, header=None, names=["Unit", "Price", "User"], sep=',')
+        new_ask = pd.read_csv(input_path, sep=',')  # <- no header=None
         new_ask["Type"] = "ask"
         new_ask = new_ask[["Unit", "Price", "Type", "User"]]
-
         self.orders = pd.concat([self.orders, new_ask], ignore_index=True)
 
     def display(self, scale=0):
@@ -113,11 +111,11 @@ class _OrderBook():
         """
 
         if scale == 0:
-            return self.orders
+            print(self.orders)
         elif scale == 1:
-            return [self.orders['Type'] == 'bid']
+            print([self.orders['Type'] == 'bid'])
         else:
-            return self.orders[self.orders['Type'] == 'ask']
+            print(self.orders[self.orders['Type'] == 'ask'])
 
     def get_bids(self):
         """ Extract all bids, sorted in non-ascending order by prices. Bids of the same prices are merged.

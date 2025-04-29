@@ -118,7 +118,7 @@ class Market():
         Returns:
             A dataframe consists of the orders.
         """
-        return self.book.display(scale)
+        self.book.display(scale)
     
     @abstractmethod
     def clearing(self):

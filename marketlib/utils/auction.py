@@ -1,4 +1,3 @@
-import random
 from typing import Dict
 import pandas as pd
 import warnings
@@ -75,8 +74,10 @@ def second_price_sealed_bid(M, bids : Dict):
 # -------------------- 
 #   Double Auction   -
 # -------------------- 
-def double_auction(M, bids : Dict):
-    warnings.warn("For double auctions, please use the pooled market class.")
+def double_auction(*args, **kwargs):
+    """A double auction is the same as our pooled market.
+    """
+    warnings.warn("Please use the pooled market instead.")
 
 # --------------------- 
 #   Reverse Auction   -  
@@ -107,6 +108,9 @@ def reverse_auction(M, bids : Dict):
         rows.append(new_row)
 
     M.alloc_buyer = pd.DataFrame(rows)
+
+
+
 
 
 AUCTION_METHODS = {
