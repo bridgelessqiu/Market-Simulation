@@ -1,7 +1,7 @@
-from marketlib import markets as mk
+from marketlib.markets import bilateral as mk
 
-bid_file_path = "../data/example_bids.csv"
-ask_file_path = "../data/example_asks.csv"
+bid_file_path = "./data/example_bids.csv"
+ask_file_path = "./data/example_asks.csv"
 
 M = mk.BilateralMarket()
 
