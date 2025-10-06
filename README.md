@@ -43,7 +43,8 @@
 
   2.  ``orderbook`` module
 
-      The class for all bids and asks orders. It communicates with a market to add bids/asks, display the dataframe, and plots.
+      An orderbook contains all active bids and asks. It is used within a market to add bids/asks, display 
+      the collection of bids and ask, and plot the supply and demand curves.
 
   3. `pool` module
 
@@ -61,11 +62,11 @@
             once we see the volume start to decrease, the previous price 
             is then the target price to return.
 
-4.  `one_side` module
+1.  `one_side` module
 
     The class for a one sided market which supports the following **auctions**: (i) first-price; (ii) second-price; (iii) double and (iv) reverse.
 
-5. `bilateral` module
+2. `bilateral` module
 
     The class of bilateral markets, which supports various matching mechanisms and bargaining mechanisms.
 
