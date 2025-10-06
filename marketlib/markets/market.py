@@ -1,4 +1,4 @@
-"""The abstract base class for different markets.
+"""The base class for different markets.
 """
 
 from marketlib.markets import orderbook as ob
@@ -7,27 +7,27 @@ from abc import abstractmethod
 import pandas as pd
 
 class Market():
-    """ The abstract base market class.
+    """ The base market class.
 
     Attributes:
         book (OrderBook): 
             Tracks all active bids and asks.
-        divisible (bool): 
+        divisible (bool, default=True): 
             If goods are divisible, fractional assignments are allowed.
         alloc_buyer (Dataframe):
             Stores results for buyers after market clearing.
         alloc_seller (Dataframe):
             Stores results for sellers after market clearing.
-        alloc_method (function):
+        alloc_method (function, default=UNIFORM):
             The allocation method used by the market. 
     """
 
-    def __init__(self, alloc_type: str = "uniform", divisible: bool =True):
+    def __init__(self, alloc_type: str="uniform", divisible: bool=True):
         """ A market instance.
 
         Args:
             alloc_type (str, optional): 
-                The name of the allocation method used after setting a clearing price.
+                The name of the allocation method used after computing a clearing price.
             divisible (bool, optional): 
                 If goods are divisible, fractional assignments are allowed. 
 
@@ -35,8 +35,8 @@ class Market():
             ValueError: The allocation method dose not exist.
         """
 
-        # An OrderBook instance has the following four columns: "Unit", 
-        # "Price", "Type", and "User".
+        # An OrderBook instance has the following four columns: 1. "Unit", 
+        # 2. "Price", 3. "Type", and 4. "User".
         self.book = ob._OrderBook()
         self.divisible = divisible
         
@@ -45,8 +45,8 @@ class Market():
         self.alloc_buyer = pd.DataFrame(columns=["User", "Units Bought", "Price"])
         self.alloc_seller = pd.DataFrame(columns=["User", "Units Sold", "Price"])
 
-        # Currently, four allocation methods are implemented: "uniform", 
-        # "price", "welfare", and "proportional".
+        # Currently, four allocation methods are implemented: 1. "uniform", 
+        # 2. "price", 3. "welfare", and 4. "proportional".
         if alloc_type not in alloc.ALLOCATION_METHODS:
             raise ValueError(f"Invalid allocation method: {alloc_type}")
 

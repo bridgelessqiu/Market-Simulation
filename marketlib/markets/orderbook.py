@@ -1,6 +1,8 @@
-"""Orderbook tracks all active bids and asks
+"""Orderbook tracks all active bids and asks, used by the Market class.
 
-For internal usage only (by the Market class).
+    How to run:
+    1. You are not suppose to run this module explicitly. 
+    2. For testing: python3 -m marketlib.markets.orderbook
 """
 
 import pandas as pd
@@ -12,8 +14,9 @@ class _OrderBook():
 
     Attributes:
         orders (dataframe):
-            Columns are "Unit", "Price", "Type" and "User". "Price" is
-            per-unit, "Type" is bid or ask, "User" is user id.
+            Columns are "Unit" | "Price" | "Type" | "User". 
+            "Price" is per-unit, "Type" is either bid or ask, 
+            "User" is user id.
     """
 
     col_names = [
@@ -24,28 +27,36 @@ class _OrderBook():
     ] 
 
     def __init__(self):
+        # Initially an empty order book
         self.orders = pd.DataFrame(columns=self.col_names)
 
-    def add_bid(
+    # ----------------------
+    #   Add a single bid   -
+    # ----------------------
+    def _add_bid(
         self,
         unit,
         price,
         user_id
     ):
-        """ Add one bid to the orderbook.
+        """ Add a single bid to the orderbook.
 
         Args:
             unit (int): 
-                Units for this bid 
+                Number of buying units for this bid 
             price (float): 
                 Per-unit bid price
-            user_id (int): 
-                Buyers and sellers don't overlap
+            user_id (int):
+                The id of the buyer who placed this bid.
+                (Buyers and sellers ids don't overlap)
         """
 
         new_bid = pd.DataFrame([[unit, price, 'bid', user_id]], columns=self.col_names)
         self.orders = pd.concat([self.orders, new_bid], ignore_index=True)
 
+    # --------------------------
+    #   Add a bundle of bids   -
+    # --------------------------
     def add_bid_csv(
         self,
         input_path
@@ -54,34 +65,43 @@ class _OrderBook():
 
         Args:
             input_path (str):
-                Path to the .csv file. Columns: Unit, Price, User
+                Path to the .csv file which contains a collection of bids.
+                Columns of csv: Unit, Price, User.
+                Note: The "Type" column will be added automatically to the orderbook. No need to specify it in the csv file.
         """
 
         new_bid = pd.read_csv(input_path, sep=',')
         new_bid["Type"] = "bid"
-        new_bid = new_bid[["Unit", "Price", "Type", "User"]]
+        new_bid = new_bid[self.col_names]
         self.orders = pd.concat([self.orders, new_bid], ignore_index=True)
 
-    def add_ask(
+    # ----------------------
+    #   Add a single ask   -
+    # ----------------------
+    def _add_ask(
         self,
         unit,
         price,
         user_id
     ):
-        """ Add one ask to the orderbook.
+        """ Add a single ask to the orderbook.
 
         Args:
             unit (int): 
-                Units for this ask 
+                Number of buying units for this ask 
             price (float): 
-                Ask price
+                Per-unit ask price
             user_id (int):
-                Buyers and sellers don't overlap
+                The id of the seller who placed this bid.
+                (Buyers and sellers ids don't overlap)
         """  
         
         new_ask = pd.DataFrame([[unit, price, 'ask', user_id]], columns=self.col_names)
         self.orders = pd.concat([self.orders, new_ask], ignore_index=True)
-
+    
+    # --------------------------
+    #   Add a bundle of asks   -
+    # --------------------------
     def add_ask_csv(
         self,
         input_path
@@ -90,24 +110,27 @@ class _OrderBook():
 
         Args:
             input_path (str): 
-                Path to the .csv file. Columns: Unit, Price, User
+                Path to the .csv file which contains a collection of asks.
+                Columns of csv: Unit, Price, User.
+                Note: The "Type" column will be added automatically to the orderbook. No need to specify it in the csv file.
         """
 
         new_ask = pd.read_csv(input_path, sep=',')  # <- no header=None
         new_ask["Type"] = "ask"
-        new_ask = new_ask[["Unit", "Price", "Type", "User"]]
+        new_ask = new_ask[self.col_names]
         self.orders = pd.concat([self.orders, new_ask], ignore_index=True)
 
+    # -----------------------------------
+    #   Display the current orderbook   -
+    # -----------------------------------
     def display(self, scale=0):
-        """ Return the orderbook.
+        """ Print the orderbook.
 
         Args:
             scale (int, default=0): 
                 0: both bids and asks; 
-                1: bids; 2: asks
-
-        Returns:
-            Dataframe, the orderbook
+                1: bids; 
+                2: asks
         """
 
         if scale == 0:
@@ -117,23 +140,36 @@ class _OrderBook():
         else:
             print(self.orders[self.orders['Type'] == 'ask'])
 
-    def get_bids(self):
-        """ Extract all bids, sorted in non-ascending order by prices. Bids of the same prices are merged.
+        print('\n')
+
+
+    # ------------------
+    #   Get all bids   -
+    # ------------------
+    def _get_bids(self):
+        """ Extract all bids, sorted in non-ascending order by prices. Bids of the same prices are merged where their units accumulate.
+
+        This function gives the demand curve, which is used to compute the market clearing price.
 
         Returns:
-            A numpy array of the form [[bid_price, units] ...]
+            A numpy array of the form [[bid_price_1, units_1], [bid_price_2, units_2], ...]
         """
 
         bids = self.orders[self.orders['Type'] == 'bid']
         bid_curves = bids.groupby('Price')['Unit'].sum().reset_index()
 
         return bid_curves.sort_values(by=['Price'], ascending=False).to_numpy()
-    
-    def get_asks(self):
-        """ Extract all asks, sorted in non-descending order by prices. Asks of the same prices are merged.
+ 
+    # ------------------
+    #   Get all asks   -
+    # ------------------   
+    def _get_asks(self):
+        """ Extract all asks, sorted in non-descending order by prices. Asks of the same prices are merged where their units accumulate.
+
+        This function gives the supply curve, which is used to compute the market clearing price.
 
         Returns:
-            A numpy array of the form [[ask_price, units] ...]
+            A numpy array of the form [[ask_price_1, units_1] ...]
         """
 
         asks = self.orders[self.orders['Type'] == 'ask']
@@ -141,8 +177,13 @@ class _OrderBook():
 
         return ask_curves.sort_values(by=['Price']).to_numpy()
 
+    # ---------------------------------
+    #   Plot supply & demand curves   -
+    # ---------------------------------
     def plot_curves(self):
-        """ Plot the supply & demand curve as two step functions.
+        """ Plot the supply & demand curve as two separate step functions.
+
+            *This code is generated by ChatGPT*
         """
 
         demand_curve = self.get_bids().tolist()
@@ -161,10 +202,8 @@ class _OrderBook():
 
         plt.figure(figsize=(7, 4), dpi=450)
         
-        plt.step(cumulative_demand, demand_prices, label='Demand', where='post', 
-                 color='#1f77b4', linewidth=2.5, alpha=0.8)
-        plt.step(cumulative_supply, supply_prices, label='Supply', where='post', 
-                 color='#ff7f0e', linewidth=2.5, alpha=0.8)
+        plt.step(cumulative_demand, demand_prices, label='Demand', where='post', color='#1f77b4', linewidth=2.5, alpha=0.8)
+        plt.step(cumulative_supply, supply_prices, label='Supply', where='post', color='#ff7f0e', linewidth=2.5, alpha=0.8)
     
         plt.title('Demand & Supply Curves', fontsize=14, fontweight='bold')
         plt.xlabel('Quantity', fontsize=12)
@@ -178,21 +217,45 @@ class _OrderBook():
     
 
 if __name__ == "__main__":
-    B = _OrderBook() # Run: python3 -m marketlib.markets.orderbook
+    B_1 = _OrderBook()
+    B_2 = _OrderBook()
 
-    B.add_bid(5, 1, 0)
-    B.add_bid(10, 1.5, 1)
-    B.add_bid(20, 0.5, 2)
-    B.add_ask(7, 0.85, 3)
-    B.add_ask(12, 1.15, 4)
+    # Add single bids and asks
+    B_1._add_bid(5, 1, 0)
+    B_1._add_bid(10, 1.5, 1)
+    B_1._add_bid(20, 0.5, 2)
+    B_1._add_ask(7, 0.85, 3)
+    B_1._add_ask(12, 1.15, 4)
 
-    print(B.display())
+    # Add bundles
+    B_2.add_ask_csv('data/example_asks.csv')
+    B_2.add_bid_csv('data/example_bids.csv')
+
+    print("--- Order Book 1 ---")
+    B_1.display()
+
+    print("--- Order Book 2 ---")
+    B_2.display()
 
     """ 
-    Ind  Unit Price Type User
+    OUTPUTS:
+
+    --- Order Book 1 ---
+    Unit Price Type User
     0    5     1  bid    0
     1   10   1.5  bid    1
     2   20   0.5  bid    2
     3    7  0.85  ask    3
     4   12  1.15  ask    4
+
+    --- Order Book 2 ---
+    Unit  Price Type User
+    0   10    1.0  ask    0
+    1    5    1.5  ask    1
+    2    3    2.0  ask    2
+    3    1    1.2  ask    0
+    4   10    1.0  bid    3
+    5   10    2.0  bid    3
+    6    5    2.0  bid    4
+    7   10    2.5  bid    5
     """

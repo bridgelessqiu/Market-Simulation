@@ -1,6 +1,6 @@
 """ Allocation methods for market clearing.
 
-    Allocation happens when a clearing price is determined.
+    Allocation happens after a clearing price is computed.
 """
 
 import pandas as pd
