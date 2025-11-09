@@ -3,6 +3,7 @@
 
 from marketlib.markets import market
 from marketlib.utils import bidask as ba
+import os, random, csv
 # from typing import override  # Need Python 3.12
 
 class PoolMarket(market.Market):
@@ -11,6 +12,52 @@ class PoolMarket(market.Market):
     Note: if the total supply quantity does not equal to the total demand quantity, 
     then the problem of maximizing volume is NOT the same as minimizing the gap.
     """
+
+    def __init__(self, 
+            production_unit=None,
+            decision=None,
+            user_num=10,
+            alloc_type="uniform",
+            divisible=True):
+
+            super().__init__(alloc_type=alloc_type, divisible=divisible)
+
+            # TODO: Later, we will decide how to use production units and decisions to 
+            # assign buyer, sellers, and price.
+            # For now, it is random
+            os.makedirs("./data", exist_ok=True)
+
+            sellers = [x for x in range(user_num//2)]
+            buyers = [x for x in range(user_num//2, user_num)]
+
+            asks = []
+            bids = []
+
+            # Two asks per seller
+            for s in sellers:
+                for _ in range(2):
+                    unit = random.randint(1, 10)
+                    price = round(random.uniform(0.5, 3.0), 2)
+                    asks.append((unit, price, s))
+
+            # Two bids per buyer
+            for b in buyers:
+                for _ in range(2):
+                    unit = random.randint(1, 10)
+                    price = round(random.uniform(1.0, 5.0), 2)
+                    bids.append((unit, price, b))
+
+            # Write asks.csv
+            with open("./data/example_asks.csv", "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Unit", "Price", "User"])
+                writer.writerows(asks)
+
+            # Write bids.csv
+            with open("./data/example_bids.csv", "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Unit", "Price", "User"])
+                writer.writerows(bids)
 
     def _compute_clearing_price(self):
         """
@@ -107,16 +154,14 @@ class PoolMarket(market.Market):
 
 if __name__ == "__main__": # python3 -m marketlib.markets.pool
 
-    allocation_methods = ["proportional", "uniform", "price", "welfare"]
+    # allocation_methods = ["proportional", "uniform", "price", "welfare"]
 
-    for alloc_type in allocation_methods:
-        P = PoolMarket(alloc_type=alloc_type, divisible=True)
+    P = PoolMarket(alloc_type="proportional", divisible=True)
 
-        P.bid_csv("./data/example_bids.csv")
-        P.ask_csv("./data/example_asks.csv")
+    P.bid_csv("./data/example_bids.csv")
+    P.ask_csv("./data/example_asks.csv")
 
-        print(f"Allocation method: {alloc_type}")
-        P.clearing()
+    P.clearing()
 
 
     """

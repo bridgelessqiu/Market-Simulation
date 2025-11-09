@@ -74,9 +74,11 @@ class Agents():
                 The beta for low-valuation users.
             beta_h (float):
                 The beta for high-valuation users.
+
+            *** Todo: explain lamb ***
         """
     
-        self.agents = []
+        self.agents = []  # Set of agents
 
         for rank in range(1, N + 1):
             beta = beta_l
